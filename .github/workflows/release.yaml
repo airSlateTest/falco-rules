@@ -2,46 +2,46 @@
   name: Release Rulesfile
   on: push
   jobs:
-  release-rulesfile:
-    runs-on: ubuntu-latest
+    release-rulesfile:
+      runs-on: ubuntu-latest
 
-    env:
-      OCI_REGISTRY: ghcr.io
+      env:
+        OCI_REGISTRY: ghcr.io
 
-    permissions:
-      # These permissions are needed to interact with GitHub's OIDC Token endpoint.
-      id-token: write
-      contents: read
-      packages: write
+      permissions:
+        # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+        id-token: write
+        contents: read
+        packages: write
 
-    steps:
+      steps:
 
-      # Get rules repository
-      - name: Checkout Rules
-        uses: actions/checkout@v4
+        # Get rules repository
+        - name: Checkout Rules
+          uses: actions/checkout@v4
 
-      # Get registry artifact tool
-      - name: Setup Golang
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: build/registry/go.mod
+        # Get registry artifact tool
+        - name: Setup Golang
+          uses: actions/setup-go@v5
+          with:
+            go-version-file: build/registry/go.mod
 
-      - name: Build registry artifact tool
-        working-directory: build/registry
-        run: go build -o rules-registry ./...
+        - name: Build registry artifact tool
+          working-directory: build/registry
+          run: go build -o rules-registry ./...
 
-      - name: Get lowercase OCI repo prefix
-        run: |
-          echo "OCI_REPO_PREFIX=ghcr.io/${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
-      - name: Upload OCI artifacts to GitHub packages
-        id: oci_build
-        env:
-          REGISTRY_USER: ${{ github.repository_owner }}
-          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
+        - name: Get lowercase OCI repo prefix
+          run: |
+            echo "OCI_REPO_PREFIX=ghcr.io/${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+        - name: Upload OCI artifacts to GitHub packages
+          id: oci_build
+          env:
+            REGISTRY_USER: ${{ github.repository_owner }}
+            REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GITHUB_REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
 
-        # uses OCI_REPO_PREFIX environment variable
-        run: >-
-          echo "ARTIFACT_REPO_DIGEST=$(
-            build/registry/rules-registry push-to-oci registry.yaml ${{ github.ref_name }}
-          )" >> $GITHUB_OUTPUT
+          # uses OCI_REPO_PREFIX environment variable
+          run: >-
+            echo "ARTIFACT_REPO_DIGEST=$(
+              build/registry/rules-registry push-to-oci registry.yaml ${{ github.ref_name }}
+            )" >> $GITHUB_OUTPUT
