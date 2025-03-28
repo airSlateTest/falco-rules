@@ -1,47 +1,52 @@
----
-  name: Release Rulesfile
-  on: push
-  jobs:
-    release-rulesfile:
-      runs-on: ubuntu-latest
+name: Release Rulesfile
 
-      env:
-        OCI_REGISTRY: ghcr.io
+on:
+  push:
+    tags:
+      # potential semver
+      - '[a-z]*[0-9]+.[0-9]+.[0-9]+*'
 
-      permissions:
-        # These permissions are needed to interact with GitHub's OIDC Token endpoint.
-        id-token: write
-        contents: read
-        packages: write
+jobs:
+  release-rulesfile:
+    runs-on: ubuntu-latest
 
-      steps:
+    env:
+      OCI_REGISTRY: ghcr.io
 
-        # Get rules repository
-        - name: Checkout Rules
-          uses: actions/checkout@v4
+    permissions:
+      # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+      id-token: write
+      contents: read
+      packages: write
 
-        # Get registry artifact tool
-        - name: Setup Golang
-          uses: actions/setup-go@v5
-          with:
-            go-version-file: build/registry/go.mod
+    steps:
 
-        - name: Build registry artifact tool
-          working-directory: build/registry
-          run: go build -o rules-registry ./...
+      # Get rules repository
+      - name: Checkout Rules
+        uses: actions/checkout@v4
 
-        - name: Get lowercase OCI repo prefix
-          run: |
-            echo "OCI_REPO_PREFIX=ghcr.io/${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
-        - name: Upload OCI artifacts to GitHub packages
-          id: oci_build
-          env:
-            REGISTRY_USER: ${{ github.repository_owner }}
-            REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            GITHUB_REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
+      # Get registry artifact tool
+      - name: Setup Golang
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: build/registry/go.mod
 
-          # uses OCI_REPO_PREFIX environment variable
-          run: >-
-            echo "ARTIFACT_REPO_DIGEST=$(
-              build/registry/rules-registry push-to-oci registry.yaml ${{ github.ref_name }}
-            )" >> $GITHUB_OUTPUT
+      - name: Build registry artifact tool
+        working-directory: build/registry
+        run: go build -o rules-registry ./...
+
+      - name: Get lowercase OCI repo prefix
+        run: |
+          echo "OCI_REPO_PREFIX=ghcr.io/${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+      - name: Upload OCI artifacts to GitHub packages
+        id: oci_build
+        env:
+          REGISTRY_USER: ${{ github.repository_owner }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
+
+        # uses OCI_REPO_PREFIX environment variable
+        run: >-
+          echo "ARTIFACT_REPO_DIGEST=$(
+            build/registry/rules-registry push-to-oci registry.yaml ${{ github.ref_name }}
+          )" >> $GITHUB_OUTPUT
